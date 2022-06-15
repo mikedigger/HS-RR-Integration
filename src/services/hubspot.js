@@ -19,7 +19,7 @@ const sendToHubspot = (newContact) => {
     }
 
     const getHubspotAssocURL = (params) => {
-        const {object, objectId, toObjectType, toObjectId, associationType} = params;
+        const { object, objectId, toObjectType, toObjectId, associationType } = params;
         return `https://api.hubapi.com/crm/v3/objects/${object}/${objectId}/associations/${toObjectType}/${toObjectId}/${associationType}?hapikey=${hapiKey}`
     }
 
@@ -66,54 +66,82 @@ const sendToHubspot = (newContact) => {
     }
 
     const createNote = async () => {
-        const {firstname, company, email, website, mobilephone, message} = newContact
+        const { firstname, company, email, website, mobilephone, message } = newContact
         const res = await fetch(`${proxyURL}${getHubspotObjectURL('notes')}`, {
             method: 'POST',
             headers: getRequestHeaders(),
             body: JSON.stringify({
                 properties: {
                     "hs_timestamp": new Date(),
-                    "hs_note_body": 
+                    "hs_note_body":
                         `Name: ${firstname}, <br />
                         Company: ${company}, <br />
                         Email: ${email}, <br />
                         Website: ${website}, <br />
                         Telephone: ${mobilephone}, <br />
                         Message: ${message}, <br />`,
-                    
+
                 }
             })
         });
-        
+
         return await res.json();
     }
 
+
     createContact()
         .then(contact => {
-            createCompany()
-                .then(company => createAssociation({
-                    object: 'companies',
-                    objectId: company.id,
-                    toObjectType: 'contacts',
-                    toObjectId: contact.id,
-                    associationType: 'company_to_contact'
-                }))
             createDeal()
-                .then(deal => createAssociation({
-                    object: 'deals',
-                    objectId: deal.id,
-                    toObjectType: 'contacts',
-                    toObjectId: contact.id,
-                    associationType: 'deal_to_contact'
-                }))
-            createNote()
-                .then(note => createAssociation({
-                    object: 'notes',
-                    objectId: note.id,
-                    toObjectType: 'contacts',
-                    toObjectId: contact.id,
-                    associationType: 'note_to_contact'
-                }))
+                .then(deal => {
+                    createAssociation({
+                        object: 'deals',
+                        objectId: deal.id,
+                        toObjectType: 'contacts',
+                        toObjectId: contact.id,
+                        associationType: 'deal_to_contact'
+                    });
+                    createCompany()
+                        .then(company => {
+                            createAssociation({
+                                object: 'companies',
+                                objectId: company.id,
+                                toObjectType: 'contacts',
+                                toObjectId: contact.id,
+                                associationType: 'company_to_contact'
+                            });
+                            createAssociation({
+                                object: 'companies',
+                                objectId: company.id,
+                                toObjectType: 'deals',
+                                toObjectId: deal.id,
+                                associationType: 'company_to_deal'
+                            });
+                            createNote()
+                                .then(note => {
+                                    createAssociation({
+                                        object: 'notes',
+                                        objectId: note.id,
+                                        toObjectType: 'contacts',
+                                        toObjectId: contact.id,
+                                        associationType: 'note_to_contact'
+                                    })
+                                    createAssociation({
+                                        object: 'notes',
+                                        objectId: note.id,
+                                        toObjectType: 'deals',
+                                        toObjectId: deal.id,
+                                        associationType: 'note_to_deal'
+                                    })
+                                    createAssociation({
+                                        object: 'notes',
+                                        objectId: note.id,
+                                        toObjectType: 'companies',
+                                        toObjectId: company.id,
+                                        associationType: 'note_to_company'
+                                    })
+                                })
+                        })
+                })
         })
 
 }
