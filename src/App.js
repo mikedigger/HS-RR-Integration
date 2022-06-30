@@ -1,15 +1,25 @@
 import { useState } from 'react';
 
-import sendToHubspot from './services/hubspot';
+// import sendToHubspot from './services/hubspot';
+import HubspotService from './services/hubspotService';
 
 const App = () => {
 
+    const { createContact, getContacts, updateContact, contactEmailAlreadyExists } = new HubspotService();
+
+    // hs entities
+
+
+
+    // forms
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [message, setMessage] = useState('');
     const [company, setCompany] = useState('');
     const [website, setWebsite] = useState('');
+
+    const [hsUserId, setHsUserId] = useState('');
 
     const controlName = (e) => setName(e.target.value);
     const controlEmail = (e) => setEmail(e.target.value);
@@ -18,18 +28,27 @@ const App = () => {
     const controlWebsite = (e) => setWebsite(e.target.value);
     const controlCompany = (e) => setCompany(e.target.value);
 
-    const newUser = {
-        firstname: name,
-        email,
-        mobilephone: phone,
-        message,
-        company,
-        website
-    }
 
     const onFormSubmit = (e) => {
         e.preventDefault();
-        sendToHubspot(newUser)}
+        const newUser = {
+            firstname: name,
+            email,
+            mobilephone: phone,
+            message,
+            company,
+            website
+        }
+
+        contactEmailAlreadyExists(email)
+            .then(res => {
+                const contactId = res.results[0]?.id;
+                if (!contactId) {
+                    createContact(newUser)
+                }
+                else updateContact(contactId, newUser)
+            })
+    }
 
     // прибрати атрибут name з input
     return (
@@ -46,7 +65,7 @@ const App = () => {
                 value={email}
                 placeholder="email"
                 type="email"
-                name="email"/>
+                name="email" />
             <input
                 onChange={controlPhone}
                 value={phone}
@@ -59,19 +78,19 @@ const App = () => {
                 value={message}
                 placeholder="message"
                 type="text"
-                name="message"/>
+                name="message" />
             <input
                 onChange={controlCompany}
                 value={company}
                 placeholder="company name"
                 type="text"
-                name="company_name"/>
+                name="company_name" />
             <input
                 onChange={controlWebsite}
                 value={website}
                 placeholder="company link"
                 type="url"
-                name="website"/>
+                name="website" />
             <button type="submit">submit</button>
         </form>
     )
