@@ -5,10 +5,9 @@ import HubspotService from './services/hubspotService';
 
 const App = () => {
 
-    const { createContact, getContacts, updateContact, contactEmailAlreadyExists } = new HubspotService();
+    const { createContact, getContacts, updateContact, contactEmailAlreadyExists, getContactDealsAssociatios, createAdditionalNote, createAssociation, getDeal } = new HubspotService();
 
     // hs entities
-
 
 
     // forms
@@ -18,8 +17,6 @@ const App = () => {
     const [message, setMessage] = useState('');
     const [company, setCompany] = useState('');
     const [website, setWebsite] = useState('');
-
-    const [hsUserId, setHsUserId] = useState('');
 
     const controlName = (e) => setName(e.target.value);
     const controlEmail = (e) => setEmail(e.target.value);
@@ -46,7 +43,26 @@ const App = () => {
                 if (!contactId) {
                     createContact(newUser)
                 }
-                else updateContact(contactId, newUser)
+                else {
+                    updateContact(contactId, newUser);
+                    createAdditionalNote(newUser.message)
+                        .then(note => {
+                            getContactDealsAssociatios(contactId)
+                                .then((associatedDeals) => {
+                                    const deals = associatedDeals.results.map(assoc => getDeal(assoc.id));
+                                    console.log(deals)
+                                    createAssociation({
+                                        object: 'notes',
+                                        objectId: note.id,
+                                        toObjectType: 'deals',
+                                        toObjectId: associatedDeals.results[0]?.id,
+                                        associationType: 'note_to_deal'
+                                    })
+                                })
+
+                        })
+                    
+                } 
             })
     }
 

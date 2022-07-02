@@ -18,7 +18,7 @@ export default class HubspotService {
         return `https://api.hubapi.com/crm/v3/objects/${object}?hapikey=${this._hapiKey}`
     }
 
-    getHubspotAssocURL = (params) => {
+    _getHubspotAssocURL = (params) => {
         const { object, objectId, toObjectType, toObjectId, associationType } = params;
         return `https://api.hubapi.com/crm/v3/objects/${object}/${objectId}/associations/${toObjectType}/${toObjectId}/${associationType}?hapikey=${this._hapiKey}`
     }
@@ -55,6 +55,14 @@ export default class HubspotService {
 
     createContact = async (newContact) => {
         return await this._createHubspotObject('contacts', newContact)
+    }
+
+    getContactDealsAssociatios = async (contactId) => {
+        const res = await fetch(`${this._proxyURL}https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/deals?hapikey=${this._hapiKey}`, {
+            method: 'GET',
+            headers: this._getRequestHeaders()
+        });
+        return await res.json()
     }
     // ---------------------------------------------
 
@@ -104,12 +112,21 @@ export default class HubspotService {
         return await this._createHubspotObject('deals', this._newDeal(this._newContact))
     }
 
+    getDeal = async (dealId) => {
+        const res = await fetch(`${this._proxyURL}https://api.hubapi.com/crm/v3/objects/deals/${dealId}?archived=false&hapikey=${this._hapiKey}`, {
+            method: 'GET',
+            headers: this._getRequestHeaders()
+        });
+
+        return await res.json();
+    }
+
     createCompany = async () => {
         return await this._createHubspotObject('companies', this._newCompany(this._newContact))
     }
 
-    createNote = async () => {
-        const { firstname, company, email, website, mobilephone, message } = this._newContact
+    createNote = async (newContact) => {
+        const { firstname, company, email, website, mobilephone, message } = newContact
         const res = await fetch(`${this._proxyURL}${this._getHubspotObjectURL('notes')}`, {
             method: 'POST',
             headers: this._getRequestHeaders(),
@@ -124,6 +141,21 @@ export default class HubspotService {
                         Telephone: ${mobilephone}, <br />
                         Message: ${message}, <br />`,
 
+                }
+            })
+        });
+
+        return await res.json();
+    }
+
+    createAdditionalNote = async (message) => {
+        const res = await fetch(`${this._proxyURL}${this._getHubspotObjectURL('notes')}`, {
+            method: 'POST',
+            headers: this._getRequestHeaders(),
+            body: JSON.stringify({
+                properties: {
+                    "hs_timestamp": new Date(),
+                    "hs_note_body": `Message: ${message}`,
                 }
             })
         });
