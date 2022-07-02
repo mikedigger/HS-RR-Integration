@@ -9,7 +9,7 @@ export default class HubspotService {
             // stuff for http-cors-proxy
             origin: 'http://localhost:3000',
             'x-requested-with': 'http://localhost:3000',
-            'X-RapidAPI-Key': '248e0c5260msh354a5b43e6f14f9p13b870jsn926da4ac7752',
+            'X-RapidAPI-Key': '928882e4bamshf67efcfaa4a6ca7p1870f9jsn2a1753f865f5',
             'X-RapidAPI-Host': 'http-cors-proxy.p.rapidapi.com'
         }
     }
@@ -23,10 +23,9 @@ export default class HubspotService {
         return `https://api.hubapi.com/crm/v3/objects/${object}/${objectId}/associations/${toObjectType}/${toObjectId}/${associationType}?hapikey=${this._hapiKey}`
     }
 
-    newDeal = (newContact) => {
+    _newDeal = (newContact) => {
         return {
-            "dealname": `RR Site Enquiry: ${newContact.company}`,
-            "dealstage": "appointmentscheduled",
+            "dealname": `RR Site Enquiry:${newContact.firstname}`,
         }
     }
 
@@ -97,19 +96,13 @@ export default class HubspotService {
                 ]
             })
         });
-        console.log(res)
-
-        if (!res.ok) return false;
-
-        else {
-            return await res.json()
-        }
+        return await res.json()
     }
 
     // ----------------------------------------------
 
-    createDeal = async () => {
-        return await this._createHubspotObject('deals', this._newDeal(this._newContact))
+    createDeal = async (newContact) => {
+        return await this._createHubspotObject('deals', this._newDeal(newContact))
     }
 
     getDeal = async (dealId) => {
@@ -119,6 +112,27 @@ export default class HubspotService {
         });
 
         return await res.json();
+    }
+
+    getDeals = async (dealId) => {
+        const res = await fetch(`${this._proxyURL}https://api.hubapi.com/crm/v3/objects/deals/search?hapikey=${this._hapiKey}`, {
+            method: 'POST',
+            headers: this._getRequestHeaders(),
+            body: JSON.stringify({
+                "filterGroups": [
+                    {
+                        "filters": [
+                            {
+                                "propertyName": "hs_object_id",
+                                "operator": "EQ",
+                                "value": dealId
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+        return await res.json()
     }
 
     createCompany = async () => {
@@ -171,4 +185,23 @@ export default class HubspotService {
         return await res.json()
     }
 
+    associateObjectWithNote = (noteId, objectId, objectType) => {
+        this.createAssociation({
+            object: 'note',
+            objectId: noteId,
+            toObjectType: `${objectType}s`,
+            toObjectId: objectId,
+            associationType: `note_to_${objectType}`
+        })
+    }
+
+    associateObjectWithContact = (contactId, objectId, objectType) => {
+        this.createAssociation({
+            object: 'contact',
+            objectId: contactId,
+            toObjectType: `${objectType}s`,
+            toObjectId: objectId,
+            associationType: `contact_to_${objectType}`
+        })
+    }
 }

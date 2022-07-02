@@ -5,7 +5,7 @@ import HubspotService from './services/hubspotService';
 
 const App = () => {
 
-    const { createContact, getContacts, updateContact, contactEmailAlreadyExists, getContactDealsAssociatios, createAdditionalNote, createAssociation, getDeal } = new HubspotService();
+    const { createContact, updateContact, contactEmailAlreadyExists, getContactDealsAssociatios, createAdditionalNote, getDeal, createDeal, createNote, associateObjectWithNote, associateObjectWithContact } = new HubspotService();
 
     // hs entities
 
@@ -42,6 +42,18 @@ const App = () => {
                 const contactId = res.results[0]?.id;
                 if (!contactId) {
                     createContact(newUser)
+                        .then(contact => {
+                            createDeal(newUser)
+                                .then(deal => {
+                                    associateObjectWithContact(contact.id, deal.id, 'deal');
+                                    createNote(newUser)
+                                        .then(note => {
+                                            associateObjectWithNote(note.id, contact.id, 'contact');
+                                            associateObjectWithNote(note.id, deal.id, 'deal');
+                                        })
+                                })
+                        })
+
                 }
                 else {
                     updateContact(contactId, newUser);
@@ -49,24 +61,25 @@ const App = () => {
                         .then(note => {
                             getContactDealsAssociatios(contactId)
                                 .then((associatedDeals) => {
-                                    const deals = associatedDeals.results.map(assoc => getDeal(assoc.id));
-                                    console.log(deals)
-                                    createAssociation({
-                                        object: 'notes',
-                                        objectId: note.id,
-                                        toObjectType: 'deals',
-                                        toObjectId: associatedDeals.results[0]?.id,
-                                        associationType: 'note_to_deal'
-                                    })
+                                    associatedDeals.results.forEach((assoc) => {
+                                        getDeal(assoc.id)
+                                            .then(deal => {
+                                                const dealName = deal.properties.dealname;
+                                                const extractedDealName = dealName.slice(dealName.indexOf(":") + 1);
+                                                if (extractedDealName === newUser.firstname) {
+                                                    associateObjectWithNote(note.id, deal.id, 'deal');
+                                                }
+                                            })
+
+                                    });
                                 })
 
                         })
-                    
-                } 
+
+                }
             })
     }
 
-    // прибрати атрибут name з input
     return (
         <form
             onSubmit={(e) => onFormSubmit(e)}>
