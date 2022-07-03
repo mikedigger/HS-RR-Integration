@@ -40,7 +40,10 @@ const App = () => {
         contactEmailAlreadyExists(email)
             .then(res => {
                 const contactId = res.results[0]?.id;
-                if (!contactId) {
+                const email = res.results[0]?.properties.email;
+                const name = res.results[0]?.properties.firstname;
+
+                if (!email) {
                     createContact(newUser)
                         .then(contact => {
                             createDeal(newUser)
@@ -54,11 +57,23 @@ const App = () => {
                                 })
                         })
 
-                }
-                else {
-                    updateContact(contactId, newUser);
+                } else if (email === newUser.email && name !== newUser.firstname) {
+                    updateContact(contactId, newUser)
+                    createDeal(newUser)
+                        .then(deal => {
+                            associateObjectWithContact(contactId, deal.id, 'deal');
+                            createNote(newUser)
+                                .then(note => {
+                                    associateObjectWithNote(note.id, contactId, 'contact');
+                                    associateObjectWithNote(note.id, deal.id, 'deal');
+                                })
+                        })
+                    // ----------------------
+                } else if (email === newUser.email && name === newUser.firstname){
+
                     createAdditionalNote(newUser.message)
                         .then(note => {
+                            updateContact(contactId, {...newUser, message: newUser.message})
                             getContactDealsAssociatios(contactId)
                                 .then((associatedDeals) => {
                                     associatedDeals.results.forEach((assoc) => {
@@ -75,7 +90,6 @@ const App = () => {
                                 })
 
                         })
-
                 }
             })
     }
